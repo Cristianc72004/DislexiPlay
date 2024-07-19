@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menú Principal</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const socket = io();
+
+      const logoutLink = document.querySelector('#logout');
+      if (logoutLink) {
+        logoutLink.addEventListener('click', (event) => {
+          event.preventDefault();
+          socket.emit('logout');
+        });
+
+        socket.on('logoutSuccess', (data) => {
+          console.log(data.message);
+          window.location.href = 'index.html';
+        });
+      }
+    });
+  </script>
+</head>
+<body class="bg-green-100">
+
+  <!-- Encabezado -->
+  <header class="bg-white py-4 px-6 flex justify-between items-center shadow-md">
+    <!-- Logo -->
+    <img src="img/logo.jpg" alt="Logo" class="w-10 h-10">
+    <!-- Enlaces -->
+    <div class="flex space-x-7">
+      <a href="menu.html" class="text-gray-800 hover:text-purple-600 text-lg font-medium">Menú</a>
+      <a href="#" id="logout" class="text-gray-800 hover:text-purple-600 text-lg font-medium">Cerrar sesión</a>
+      <a href="#" class="text-gray-800 hover:text-purple-600 text-lg font-medium">Configuración</a>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="max-w-6xl mx-auto mt-8 px-4">
+    <!-- Menú -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-bold text-purple-600 mb-4">Menú</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+        <!-- Opción 1: Golpea el Topo -->
+        <div class="bg-white p-6 rounded-lg shadow-md max-w-sm">
+          <a href="juego1.html">
+            <img src="img/topo.jpg" alt="Golpea el Topo" class="w-full h-4/5 object-cover rounded-md mb-4">
+            <h3 class="text-xl font-medium text-gray-800 text-center">Golpea el Topo</h3>
+          </a>
+        </div>
+        <!-- Opción 2: Caída de Palabras -->
+        <div class="bg-white p-6 rounded-lg shadow-md max-w-sm">
+          <a href="juego2.html">
+            <img src="img/caidad.jpg" alt="Caída de Palabras" class="w-full h-4/5 object-cover rounded-md mb-4">
+            <h3 class="text-xl font-medium text-gray-800 text-center">Caída de Palabras</h3>
+          </a>
+        </div>
+        <!-- Opción 3: Adivinanza -->
+        <div class="bg-white p-6 rounded-lg shadow-md max-w-sm">
+          <a href="juego3.html">
+            <img src="img/adivina.jpg" alt="Adivinanza" class="w-full h-4/5 object-cover rounded-md mb-4">
+            <h3 class="text-xl font-medium text-gray-800 text-center">Adivinanza</h3>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Pie de Página -->
+  <footer class="bg-gray-800 text-white py-4 text-center">
+    <p>Espoch todos los derechos reservados</p>
+  </footer>
+
+</body>
+</html>

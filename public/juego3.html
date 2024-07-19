@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Adivinanza</title>
+    <link rel="stylesheet" href="css/tailwind.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .counter, .error-counter, .timer {
+            position: fixed;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            text-align: center;
+            font-size: 18px;
+        }
+        .counter {
+            top: 20px;
+            left: 20px;
+        }
+        .error-counter {
+            top: 60px;
+            left: 20px;
+        }
+        .timer {
+            top: 20px;
+            right: 20px;
+        }
+        .chatbox {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            resize: both;
+            overflow: hidden;
+            cursor: move;
+        }
+        .chat-message {
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body class="bg-green-100 min-h-screen flex flex-col items-center justify-center">
+
+    <!-- Título del Juego -->
+    <h1 class="text-4xl font-bold text-purple-600 mb-8">Juego de Adivinanza</h1>
+
+    <!-- Botón de Inicio -->
+    <button id="start-button" class="mb-8 px-6 py-2 bg-blue-500 text-white font-bold rounded-full">Iniciar Juego</button>
+
+    <!-- Zona de Juego -->
+    <div id="game-area" class="relative bg-white w-full max-w-4xl h-48 border-4 border-gray-300 rounded-lg shadow-md flex items-center justify-center text-2xl text-green-600">
+        <!-- La frase aparecerá aquí -->
+    </div>
+
+    <!-- Contador de Aciertos -->
+    <div class="counter">
+        <p>Aciertos: <span id="score-counter">0</span></p>
+        <p>Errores: <span id="error-counter">0</span></p>
+    </div>
+
+    <!-- Temporizador -->
+    <div class="timer">
+        <p>Tiempo Restante: <span id="timer">30</span></p>
+    </div>
+
+    <!-- Campo de entrada -->
+    <div class="mt-4">
+        <input type="text" id="guess-input" class="px-4 py-2 border rounded-lg" placeholder="Escribe tu respuesta aquí...">
+        <button id="submit-button" class="ml-4 px-6 py-2 bg-green-500 text-white font-bold rounded-full">Enviar</button>
+    </div>
+
+    <!-- Audios de Acierto y Error -->
+    <audio id="correct-sound" src="./sonido/bien.mp3"></audio>
+    <audio id="wrong-sound" src="./sonido/mal.mp3"></audio>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="./js/chatbot2.js"></script>
+    <script>
+const phrases = [
+    { phrase: "Fruto seco que esconde su semilla bajo una cáscara dura", answer: "Nuez" },
+    { phrase: "Fruta cítrica que suena como el sol", answer: "Naranja" },
+    { phrase: "Fruta exótica, su nombre evoca la capital de Francia", answer: "Parisette" },
+    { phrase: "Fruto del verano, rojo por dentro y verde por fuera", answer: "Sandía" },
+    { phrase: "Fruta que se corta en rodajas y se usa en la pizza", answer: "Piña" },
+    { phrase: "Fruta que da origen a la sidra", answer: "Manzana" },
+    { phrase: "Fruta que suena a joya preciosa", answer: "Granada" },
+    { phrase: "Fruto cítrico verde, base del mojito", answer: "Lima" },
+    { phrase: "Fruto jugoso, símbolo de amor y pasión", answer: "Cereza" },
+    { phrase: "Fruto pequeño y ácido que se usa en tartas", answer: "Arándano" },
+];
+        const gameArea = document.getElementById('game-area');
+        const scoreCounter = document.getElementById('score-counter');
+        const errorCounter = document.getElementById('error-counter');
+        const guessInput = document.getElementById('guess-input');
+        const correctSound = document.getElementById('correct-sound');
+        const wrongSound = document.getElementById('wrong-sound');
+        let score = 0;
+        let errors = 0;
+        let currentPhraseIndex = 0;
+        let timerInterval;
+        let phraseTimer;
+
+        function showNextPhrase() {
+            if (currentPhraseIndex >= phrases.length) {
+                endGame();
+                return;
+            }
+            gameArea.textContent = phrases[currentPhraseIndex].phrase;
+            startPhraseTimer();
+        }
+
+        function startPhraseTimer() {
+            let timeLeft = 30;
+            document.getElementById('timer').textContent = timeLeft;
+            phraseTimer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(phraseTimer);
+                    errors++;
+                    wrongSound.play();
+                    errorCounter.textContent = errors;
+                    sendResponse(false, phrases[currentPhraseIndex].answer);
+                    nextPhrase();
+                }
+            }, 1000);
+        }
+
+        function nextPhrase() {
+            currentPhraseIndex++;
+            showNextPhrase();
+        }
+
+        function startGame() {
+            score = 0;
+            errors = 0;
+            currentPhraseIndex = 0;
+            scoreCounter.textContent = score;
+            errorCounter.textContent = errors;
+            showNextPhrase();
+        }
+
+        function endGame() {
+            clearInterval(phraseTimer);
+            Swal.fire({
+                title: '¡Ronda terminada!',
+                text: `Aciertos: ${score}, Errores: ${errors}`,
+                icon: 'info',
+                confirmButtonText: 'Reiniciar'
+            }).then(() => {
+                document.getElementById('start-button').style.display = 'block';
+                guessInput.value = '';
+                guessInput.blur();
+            });
+        }
+
+        document.getElementById('start-button').addEventListener('click', () => {
+            document.getElementById('start-button').style.display = 'none';
+            guessInput.focus();
+            startGame();
+        });
+
+        document.getElementById('submit-button').addEventListener('click', () => {
+            const userGuess = guessInput.value.trim().toLowerCase();
+            guessInput.value = '';
+            const correctAnswer = phrases[currentPhraseIndex].answer.toLowerCase();
+            clearInterval(phraseTimer);
+            if (userGuess === correctAnswer) {
+                score++;
+                correctSound.play();
+                scoreCounter.textContent = score;
+                sendResponse(true, correctAnswer);
+            } else {
+                errors++;
+                wrongSound.play();
+                errorCounter.textContent = errors;
+                sendResponse(false, correctAnswer);
+            }
+            nextPhrase();
+        });
+    </script>
+</body>
+</html>

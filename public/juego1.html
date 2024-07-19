@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego de Lectura - Golpea el Topo</title>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    .mole {
+      width: 100px;
+      height: 100px;
+      background: url('img/mole.png') no-repeat center center;
+      background-size: contain;
+      position: absolute;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 10px;
+    }
+    .mole-text {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .chatbox {
+      /* Estilos para la ventana emergente */
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 300px;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #fff;
+      padding: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      resize: both; /* Permitir redimensionamiento */
+      overflow: hidden;
+      cursor: move; /* Permitir arrastrar */
+    }
+    .chat-message {
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background-color: #e0e0e0;
+    }
+    .faq-button {
+      display: block;
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 8px;
+      font-size: 14px;
+      text-align: center;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .faq-button:hover {
+      background-color: #45a049;
+    }
+    .counter {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      text-align: center;
+      font-size: 18px;
+    }
+    .timer {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      text-align: center;
+      font-size: 18px;
+    }
+    #game-area {
+      background: url('img/fondo_pasto.jpg') no-repeat center center;
+      background-size: cover;
+    }
+  </style>
+</head>
+
+<body class="bg-green-100 min-h-screen flex flex-col items-center justify-center">
+
+  <!-- Título del Juego -->
+  <h1 class="text-4xl font-bold text-purple-600 mb-8">Juego de Lectura - Golpea el Topo</h1>
+
+  <!-- Cuadro de Texto -->
+  <div id="category-box" class="mb-8 p-4 bg-white rounded-lg shadow-md text-center max-w-lg w-full">
+    <p class="text-2xl font-medium text-gray-800">Categoría: <span id="category-name"></span></p>
+  </div>
+
+  <!-- Botón de Inicio -->
+  <button id="start-button" class="mb-8 px-6 py-2 bg-blue-500 text-white font-bold rounded-full">Iniciar Juego</button>
+
+  <!-- Zona de Juego -->
+  <div id="game-area" class="relative bg-white w-full max-w-4xl h-96 border-4 border-gray-300 rounded-lg shadow-md">
+    <!-- Multiple moles will be added dynamically -->
+  </div>
+
+  <!-- Contadores de Aciertos y Errores -->
+  <div class="counter">
+    <p>Aciertos: <span id="correct-counter">0</span></p>
+    <p>Errores: <span id="incorrect-counter">0</span></p>
+  </div>
+
+  <!-- Temporizador -->
+  <div class="timer">
+    <p>Tiempo Restante: <span id="timer">02:00</span></p>
+  </div>
+
+  <!-- Script de chatbot.js -->
+  <script src="js/chatbot.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.0/dist/sweetalert2.min.js"></script>
+  <script>
+    const categories = {
+      'Comida': {
+        words: ['Manzana', 'Banana', 'Cereza', 'Durazno', 'Uva', 'Pera', 'Mango'],
+        distractors: ['Perro', 'Gato', 'Casa', 'Auto', 'Pájaro', 'Río', 'Montaña']
+      },
+      'Animales': {
+        words: ['Perro', 'Gato', 'Pájaro', 'Rana', 'Caballo', 'Elefante', 'León'],
+        distractors: ['Manzana', 'Banana', 'Cereza', 'Casa', 'Auto', 'Río', 'Montaña']
+      }
+    };
+    let currentCategory;
+    let allWords;
+    const gameArea = document.getElementById('game-area');
+    const correctSound = new Audio('sonido/bien.mp3');
+    const incorrectSound = new Audio('sonido/mal.mp3');
+
+    const correctCounter = document.getElementById('correct-counter');
+    const incorrectCounter = document.getElementById('incorrect-counter');
+    let correctCount = 0;
+    let incorrectCount = 0;
+
+    const positions = [
+      { x: 50, y: 50 }, { x: 150, y: 50 }, { x: 250, y: 50 }, { x: 350, y: 50 },
+      { x: 450, y: 50 }, { x: 550, y: 50 }, { x: 650, y: 50 }, { x: 50, y: 200 },
+      { x: 150, y: 200 }, { x: 250, y: 200 }, { x: 350, y: 200 }, { x: 450, y: 200 }
+    ];
+
+    function getRandomPosition() {
+      const availablePositions = positions.filter(pos => !gameArea.querySelector(`[style*="left: ${pos.x}px"][style*="top: ${pos.y}px"]`));
+      const randomIndex = Math.floor(Math.random() * availablePositions.length);
+      return availablePositions[randomIndex];
+    }
+
+    function createMole(word, isTarget) {
+      const mole = document.createElement('div');
+      mole.classList.add('mole');
+      mole.dataset.isTarget = isTarget;
+      mole.setAttribute('aria-label', `Palabra: ${word}`);
+
+      const moleText = document.createElement('div');
+      moleText.classList.add('mole-text');
+      moleText.textContent = word;
+
+      mole.appendChild(moleText);
+
+      const { x, y } = getRandomPosition();
+      mole.style.left = `${x}px`;
+      mole.style.top = `${y}px`;
+
+      gameArea.appendChild(mole);
+
+      mole.addEventListener('click', () => {
+        if (isTarget) {
+          correctSound.play();
+          correctCount++;
+          correctCounter.textContent = correctCount;
+          sendResponse(true, word);
+        } else {
+          incorrectSound.play();
+          incorrectCount++;
+          incorrectCounter.textContent = incorrectCount;
+          sendResponse(false, word);
+        }
+        gameArea.removeChild(mole);
+        createRandomMole();
+      });
+
+      setTimeout(() => {
+        if (gameArea.contains(mole)) {
+          gameArea.removeChild(mole);
+          createRandomMole();
+        }
+      }, 3000); // The mole disappears after 3 seconds
+    }
+
+    function createRandomMole() {
+      const word = allWords[Math.floor(Math.random() * allWords.length)];
+      const isTarget = currentCategory.words.includes(word);
+      createMole(word, isTarget);
+    }
+
+    function showMoles() {
+      for (let i = 0; i < 5; i++) {
+        setTimeout(createRandomMole, i * 1000);
+      }
+    }
+
+    function initializeGame(category) {
+      currentCategory = categories[category];
+      allWords = currentCategory.words.concat(currentCategory.distractors);
+      document.getElementById('category-name').textContent = category;
+      resetGame();
+    }
+
+    function resetGame() {
+      correctCount = 0;
+      incorrectCount = 0;
+      correctCounter.textContent = correctCount;
+      incorrectCounter.textContent = incorrectCount;
+      gameArea.innerHTML = '';
+      showMoles();
+      startTimer();
+    }
+
+    let timerInterval;
+    let gameEnded = false; // Variable para rastrear si el juego ha terminado
+
+    function startTimer() {
+      const endTime = Date.now() + 2 * 60 * 1000; // 2 minutes from now
+      const timerElement = document.getElementById('timer');
+
+      timerInterval = setInterval(() => {
+        const remainingTime = endTime - Date.now();
+        if (remainingTime <= 0) {
+          clearInterval(timerInterval);
+          timerElement.textContent = '00:00';
+          if (!gameEnded) { // Verificar si el juego ya ha terminado
+            endGame();
+          }
+        } else {
+          const minutes = String(Math.floor((remainingTime / 1000 / 60) % 60)).padStart(2, '0');
+          const seconds = String(Math.floor((remainingTime / 1000) % 60)).padStart(2, '0');
+          timerElement.textContent = `${minutes}:${seconds}`;
+        }
+      }, 1000);
+    }
+
+    function endGame() {
+      gameEnded = true; // Marcar el juego como terminado
+      Swal.fire({
+        title: '¡Tiempo terminado!',
+        text: `Aciertos: ${correctCount} - Errores: ${incorrectCount}`,
+        icon: 'info',
+        confirmButtonText: 'Reiniciar'
+      }).then(() => {
+        location.reload();
+      });
+    }
+
+    document.getElementById('start-button').addEventListener('click', () => {
+      const categoriesArray = Object.keys(categories);
+      const randomCategory = categoriesArray[Math.floor(Math.random() * categoriesArray.length)];
+      initializeGame(randomCategory);
+      document.getElementById('start-button').style.display = 'none';
+      startTimer();
+    });
+  </script>
+
+</body>
+</html>

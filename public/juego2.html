@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caída de palabras</title>
+    <link rel="stylesheet" href="css/tailwind.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .falling-word {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 2px 6px;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .counter {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            text-align: center;
+            font-size: 18px;
+        }
+        .timer {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            text-align: center;
+            font-size: 18px;
+        }
+        #hidden-input {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+        }
+    </style>
+</head>
+<body class="bg-green-100 min-h-screen flex flex-col items-center justify-center">
+
+    <!-- Título del Juego -->
+    <h1 class="text-4xl font-bold text-purple-600 mb-8">Juego de caída de palabras</h1>
+
+    <!-- Botón de Inicio -->
+    <button id="start-button" class="mb-8 px-6 py-2 bg-blue-500 text-white font-bold rounded-full">Iniciar Juego</button>
+
+    <!-- Zona de Juego -->
+    <div id="game-area" class="relative bg-white w-full max-w-4xl h-96 border-4 border-gray-300 rounded-lg shadow-md">
+        <!-- Las palabras caerán dinámicamente aquí -->
+    </div>
+
+    <!-- Contador de Aciertos -->
+    <div class="counter">
+        <p>Puntuación: <span id="score-counter">0</span></p>
+    </div>
+
+    <!-- Temporizador -->
+    <div class="timer">
+        <p>Tiempo Restante: <span id="timer">02:00</span></p>
+    </div>
+
+    <!-- Campo de entrada invisible -->
+    <input type="text" id="hidden-input" autocomplete="off">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const words = ['Manzana', 'Banana', 'Cereza', 'Durazno', 'Uva', 'Pera', 'Mango'];
+        const gameArea = document.getElementById('game-area');
+        const scoreCounter = document.getElementById('score-counter');
+        const hiddenInput = document.getElementById('hidden-input');
+        let score = 0;
+        let timerInterval;
+        let wordIntervals = [];
+
+        function createFallingWord(word) {
+            const fallingWord = document.createElement('div');
+            fallingWord.classList.add('falling-word');
+            fallingWord.textContent = word;
+
+            const startX = Math.random() * (gameArea.clientWidth - 100);
+            fallingWord.style.left = `${startX}px`;
+            fallingWord.style.top = '0px';
+
+            gameArea.appendChild(fallingWord);
+
+            let fallInterval = setInterval(() => {
+                const currentTop = parseFloat(fallingWord.style.top);
+                if (currentTop >= gameArea.clientHeight - 30) {
+                    clearInterval(fallInterval);
+                    gameArea.removeChild(fallingWord);
+                } else {
+                    fallingWord.style.top = `${currentTop + 2}px`;
+                }
+            }, 50);
+
+            wordIntervals.push(fallInterval);
+        }
+
+        function startFallingWords() {
+            const wordInterval = setInterval(() => {
+                const word = words[Math.floor(Math.random() * words.length)];
+                createFallingWord(word);
+            }, 1000);
+            wordIntervals.push(wordInterval);
+        }
+
+        function resetGame() {
+            score = 0;
+            scoreCounter.textContent = score;
+            gameArea.innerHTML = '';
+            clearInterval(timerInterval);
+            wordIntervals.forEach(clearInterval);
+            wordIntervals = [];
+            startFallingWords();
+            startTimer();
+        }
+
+        function startTimer() {
+            const endTime = Date.now() + 2 * 60 * 1000; // 2 minutes from now
+            const timerElement = document.getElementById('timer');
+
+            timerInterval = setInterval(() => {
+                const remainingTime = endTime - Date.now();
+                if (remainingTime <= 0) {
+                    clearInterval(timerInterval);
+                    timerElement.textContent = '00:00';
+                    wordIntervals.forEach(clearInterval);
+                    Swal.fire({
+                        title: '¡Tiempo terminado!',
+                        text: `Puntuación: ${score}`,
+                        icon: 'info',
+                        confirmButtonText: 'Aceptar'
+                    }).then(() => {
+                        document.getElementById('start-button').style.display = 'block';
+                        hiddenInput.value = '';
+                        hiddenInput.blur();
+                    });
+                } else {
+                    const minutes = String(Math.floor((remainingTime / 1000 / 60) % 60)).padStart(2, '0');
+                    const seconds = String(Math.floor((remainingTime / 1000) % 60)).padStart(2, '0');
+                    timerElement.textContent = `${minutes}:${seconds}`;
+                }
+            }, 1000);
+        }
+
+        document.getElementById('start-button').addEventListener('click', () => {
+            document.getElementById('start-button').style.display = 'none';
+            hiddenInput.focus();
+            resetGame();
+        });
+
+        hiddenInput.addEventListener('input', (event) => {
+            const typedLetter = event.target.value.toLowerCase();
+            hiddenInput.value = '';
+
+            const fallingWords = document.querySelectorAll('.falling-word');
+            let letterMatched = false;
+
+            fallingWords.forEach(wordElement => {
+                const wordText = wordElement.textContent.toLowerCase();
+                if (wordText.startsWith(typedLetter)) {
+                    wordElement.textContent = wordElement.textContent.slice(1);
+                    letterMatched = true;
+                    if (wordElement.textContent.length === 0) {
+                        score++;
+                        scoreCounter.textContent = score;
+                        gameArea.removeChild(wordElement);
+                    }
+                }
+            });
+
+            if (!letterMatched) {
+                hiddenInput.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
